@@ -48,8 +48,18 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
     'corsheaders',
-    'ecommerce_app',
+    
+    # New organized apps
+    'users',
+    'products',
+    'cart',
+    'orders',
+    'payments',
+    
+    # Keep old app for migration purposes - temporarily disabled
+    # 'ecommerce_app',
 ]
 
 MIDDLEWARE = [
@@ -94,8 +104,15 @@ WSGI_APPLICATION = 'ecommerce.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT', default=5432, cast=int),
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
     }
 }
 
@@ -162,7 +179,7 @@ SIMPLE_JWT = {
 }
 
 # Custom User Model
-AUTH_USER_MODEL = 'ecommerce_app.User'
+AUTH_USER_MODEL = 'users.User'
 
 # Media files
 MEDIA_URL = '/media/'

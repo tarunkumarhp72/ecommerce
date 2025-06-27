@@ -21,7 +21,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('ecommerce_app.urls')),
+    # Temporarily disabled old app
+    # path('', include('ecommerce_app.urls')),
 ]
 
 # Serve media files during development
