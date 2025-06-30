@@ -31,6 +31,13 @@ class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
         fields = ['id', 'product', 'product_id', 'quantity', 'total_price']
+        
+    def to_representation(self, instance):
+        # Optimize by using cached product data
+        data = super().to_representation(instance)
+        if hasattr(instance, 'product'):
+            data['product'] = ProductSerializer(instance.product).data
+        return data
 
     def validate_product_id(self, value):
         try:

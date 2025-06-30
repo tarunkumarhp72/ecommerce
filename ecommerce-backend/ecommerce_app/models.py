@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.db.models import F, Sum, Case, When, DecimalField
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -33,7 +34,7 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(unique=True)
+    email = models.EmailField(unique=True, db_index=True)
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
@@ -44,10 +45,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     postal_code = models.CharField(max_length=20, blank=True, null=True)
     country = models.CharField(max_length=100, blank=True, null=True)
     
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True, db_index=True)
     is_staff = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(auto_now_add=True)
+    date_joined = models.DateTimeField(auto_now_add=True, db_index=True)
     last_login = models.DateTimeField(blank=True, null=True)
 
     objects = UserManager()
@@ -83,15 +84,24 @@ class Category(models.Model):
         return self.name
 
 class Product(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, db_index=True)
     description = models.TextField(blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    category = models.ForeignKey(Category, related_name='products', on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=10, decimal_places=2, db_index=True)
+    category = models.ForeignKey(Category, related_name='products', on_delete=models.CASCADE, db_index=True)
     image = models.ImageField(upload_to='products/', blank=True, null=True)
-    stock = models.PositiveIntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    stock = models.PositiveIntegerField(default=0, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_active', 'category']),
+            models.Index(fields=['is_active', 'price']),
+            models.Index(fields=['name', 'is_active']),
+            models.Index(fields=['category', 'is_active', 'stock']),
+        ]
 
     def __str__(self):
         return self.name
@@ -110,7 +120,15 @@ class Cart(models.Model):
 
     @property
     def total_price(self):
-        return sum(item.total_price for item in self.items.all())
+        # Use database aggregation for better performance
+        from decimal import Decimal
+        result = self.items.aggregate(
+            total=Sum(
+                F('quantity') * F('product__price'),
+                output_field=DecimalField(max_digits=10, decimal_places=2)
+            )
+        )
+        return result['total'] or Decimal('0.00')
 
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)

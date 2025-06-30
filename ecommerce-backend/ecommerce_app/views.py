@@ -106,18 +106,18 @@ class UserProfileView(APIView):
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Category.objects.all()
+    queryset = Category.objects.all().order_by('name')
     serializer_class = CategorySerializer
     permission_classes = [permissions.AllowAny]
 
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Product.objects.filter(is_active=True)
+    queryset = Product.objects.filter(is_active=True).select_related('category')
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
     
     def get_queryset(self):
-        queryset = Product.objects.filter(is_active=True)
+        queryset = Product.objects.filter(is_active=True).select_related('category')
         category = self.request.query_params.get('category', None)
         search = self.request.query_params.get('search', None)
         
@@ -127,6 +127,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(name__icontains=search)
             
         return queryset
+    
 
 
 class CartViewSet(viewsets.ModelViewSet):
@@ -139,7 +140,9 @@ class CartViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def current(self, request):
-        cart, created = Cart.objects.get_or_create(user=request.user)
+        cart, created = Cart.objects.prefetch_related(
+            'items__product__category'
+        ).get_or_create(user=request.user)
         serializer = self.get_serializer(cart)
         return Response(serializer.data)
 
@@ -220,7 +223,9 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+        return Order.objects.filter(user=self.request.user).prefetch_related(
+            'items__product__category'
+        ).select_related('user')
 
     @action(detail=False, methods=['post'])
     def create_order(self, request):
