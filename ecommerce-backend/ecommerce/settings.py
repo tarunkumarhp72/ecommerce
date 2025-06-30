@@ -51,15 +51,15 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     
-    # New organized apps
-    'users',
-    'products',
-    'cart',
-    'orders',
-    'payments',
+    # New organized apps - temporarily disabled to avoid conflicts
+    # 'users',
+    # 'products',
+    # 'cart',
+    # 'orders',
+    # 'payments',
     
     # Keep old app for migration purposes - temporarily disabled
-    # 'ecommerce_app',
+    'ecommerce_app',
 ]
 
 MIDDLEWARE = [
@@ -179,7 +179,7 @@ SIMPLE_JWT = {
 }
 
 # Custom User Model
-AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = 'ecommerce_app.User'
 
 # Media files
 MEDIA_URL = '/media/'

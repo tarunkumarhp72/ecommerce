@@ -11,7 +11,7 @@ class UserManager(BaseUserManager):
         try:
             validate_email(email)
         except ValidationError:
-            raise ValueError('Invalid email format')
+            raise ValueError('Invalid email formats')
         
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
@@ -56,7 +56,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['first_name', 'last_name']
 
     class Meta:
-        db_table = 'auth_user'
         verbose_name = 'User'
         verbose_name_plural = 'Users'
 
